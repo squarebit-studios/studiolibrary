@@ -206,6 +206,15 @@ class AnimItem(baseitem.BaseItem):
                     "visible": False
                 }
             },
+            {
+                "name": "overwrite",
+                "type": "bool",
+                "default": False,
+                "persistent": True,
+                "label": {
+                    "visible": False
+                }
+            }
         ]
 
     def saveValidator(self, **kwargs):
