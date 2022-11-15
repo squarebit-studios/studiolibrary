@@ -26,6 +26,7 @@ import studiolibrary.librarywindow
 import studioqt
 
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -628,8 +629,9 @@ class LibraryItem(studiolibrary.widgets.Item):
         """
         Safe save the item.
         """
+        
         dst = self.path()
-
+        
         if dst and not dst.endswith(self.EXTENSION):
             dst += self.EXTENSION
 
@@ -637,19 +639,28 @@ class LibraryItem(studiolibrary.widgets.Item):
 
         logger.debug(u'Item Saving: {0}'.format(dst))
         self.saving.emit(self)
-
-        if os.path.exists(dst):
-            if self._ignoreExistsDialog:
-                self._moveToTrash()
-            else:
-                self.showAlreadyExistsDialog()
+        if not kwargs.get("overwrite"):
+            if os.path.exists(dst):
+                if self._ignoreExistsDialog:
+                    self._moveToTrash()
+                else:
+                    self.showAlreadyExistsDialog()
 
         tmp = studiolibrary.createTempPath(self.__class__.__name__)
 
         self.setPath(tmp)
 
         self.save(*args, **kwargs)
-
+        if os.path.exists(dst):
+            # we check to see if they're the same file. If they're not, we will remove dst
+            if not os.path.samefile(tmp, dst):
+                try:
+                    shutil.rmtree(dst)
+                except PermissionError as exc:
+                    os.chmod(dst, 0o777)
+                    shutil.rmtree(dst)
+                
+        # move the temp file to the dst location.
         shutil.move(tmp, dst)
 
         self.setPath(dst)
