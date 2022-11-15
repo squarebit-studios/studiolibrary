@@ -651,6 +651,8 @@ class LibraryItem(studiolibrary.widgets.Item):
         self.setPath(tmp)
 
         self.save(*args, **kwargs)
+
+        # check to make sure the dst folder is deleted.
         if os.path.exists(dst):
             # we check to see if they're the same file. If they're not, we will remove dst
             if not os.path.samefile(tmp, dst):
