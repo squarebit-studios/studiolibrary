@@ -21,6 +21,7 @@ import mutils.gui
 
 try:
     import maya.cmds
+    import maya.api.OpenMaya as om
 except ImportError:
     import traceback
     traceback.print_exc()
@@ -642,8 +643,8 @@ class Animation(mutils.Pose):
 
             for name in objects:
                 if maya.cmds.copyKey(name, time=(start, end), includeUpperBound=False, option="keys"):
-                    dup_node = self._duplicate_node(name, "CURVE")
-                    # dup_node, = maya.cmds.duplicate(name, name="CURVE", parentOnly=True)
+                    #dup_node = self._duplicate_node(name, "CURVE")
+                    dup_node, = maya.cmds.duplicate(name, name="CURVE", parentOnly=True)
 
                     if not FIX_SAVE_ANIM_REFERENCE_LOCKED_ERROR:
                         mutils.disconnectAll(dup_node)
@@ -657,9 +658,8 @@ class Animation(mutils.Pose):
                     for attr in attrs:
                         dstAttr = mutils.Attribute(dup_node, attr)
                         dstCurve = dstAttr.animCurve()
-
+                        
                         if dstCurve:
-
                             dstCurve = maya.cmds.rename(dstCurve, "CURVE")
                             deleteObjects.append(dstCurve)
 
@@ -703,7 +703,7 @@ class Animation(mutils.Pose):
                 maya.cmds.undoInfo(closeChunk=True)
                 maya.cmds.undo()
             elif deleteObjects:
-                maya.cmds.delete(deleteObjects)
+                maya.cmds.delete([obj for obj in deleteObjects if "Shape" not in obj])
 
         self.setPath(path)
 
