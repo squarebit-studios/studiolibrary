@@ -58,7 +58,7 @@ __all__ = [
     "setLibraries",
     "removeLibrary",
     "defaultLibrary",
-    "updateFound",
+    "checkForUpdates",
     "read",
     "write",
     "update",
@@ -1237,18 +1237,24 @@ def walkup(path, match=None, depth=3, sep="/"):
     depthCount = 0
 
     for i, folder in enumerate(folders):
-        if folder:
+        if not folder:
+            continue
 
-            if depthCount > depth:
-                break
-            depthCount += 1
+        if depthCount > depth:
+            break
+        depthCount += 1
 
-            folder = os.path.sep.join(folders[:i*-1])
-            if os.path.exists(folder):
-                for filename in os.listdir(folder):
-                    path = os.path.join(folder, filename)
-                    if match is None or match(path):
-                        yield normPath(path)
+        folder = os.path.sep.join(folders[:i*-1])
+        if not os.path.isdir(folder):
+            continue
+        try:
+            filenames = os.listdir(folder)
+        except PermissionError:
+            continue  # expected on network shares
+        for filename in filenames:
+            path = os.path.join(folder, filename)
+            if match is None or match(path):
+                yield normPath(path)
 
 
 def timeAgo(timeStamp):
@@ -1292,24 +1298,24 @@ def timeAgo(timeStamp):
         return "yesterday"
 
     if dayDiff < 7:
-        return str(dayDiff) + " days ago"
+        return "{:.0f} days ago".format(dayDiff)
 
     if dayDiff < 31:
         v = dayDiff / 7
         if v == 1:
-            return str(v) + " week ago"
-        return str(dayDiff / 7) + " weeks ago"
+            return "{:.0f} week ago".format(v)
+        return "{:.0f} weeks ago".format(dayDiff / 7)
 
     if dayDiff < 365:
         v = dayDiff / 30
         if v == 1:
-            return str(v) + " month ago"
-        return str(v) + " months ago"
+            return "{:.0f} month ago".format(v)
+        return "{:.0f} months ago".format(v)
 
     v = dayDiff / 365
     if v == 1:
-        return str(v) + " year ago"
-    return str(v) + " years ago"
+        return "{:.0f} year ago".format(v)
+    return "{:.0f} years ago".format(v)
 
 
 def userUuid():
@@ -1388,29 +1394,49 @@ except Exception as error:
     }
 
 
-def updateFound():
+def osVersion():
+    try:
+        # Fix for Windows 11 returning the wrong version
+        if platform.system().lower() == "windows" and platform.release() == "10" and sys.getwindowsversion().build >= 22000:
+            return "11"
+    finally:
+        return platform.release().replace(' ', '%20')
+
+
+def checkForUpdates():
     """
     This function should only be used once every session unless specified by the user.
 
-    Returns True if a newer release is found for download.
+    Returns True if a newer release is found for the given platform.
 
-    :rtype: bool
+    :rtype: dict
     """
     if os.environ.get("STUDIO_LIBRARY_RELOADED") == "1":
-        return False
+        return {}
 
-    if not studiolibrary.config.get('checkForUpdateEnabled', True):
-        return False
+    if not studiolibrary.config.get('checkForUpdatesEnabled', True):
+        return {}
+
+    # In python 2.7 the getdefaultlocale function could return a None "ul"
+    try:
+        ul, _ = locale.getdefaultlocale()
+        ul = ul or "undefined"
+        ul = ul.replace("_", "-").lower()
+    except Exception as error:
+        ul = "undefined"
 
     try:
         uid = userUuid() or "undefined"
-        url = "https://app.studiolibrary.com/releases?uid={uid}&v={v}&dv={dv}&dn={dn}&os={os}"
+        url = "https://app.studiolibrary.com/releases?uid={uid}&v={v}&dv={dv}&dn={dn}&os={os}&ov={ov}&pv={pv}&ul={ul}"
         url = url.format(
             uid=uid,
             v=studiolibrary.__version__,
             dn=DCC_INFO.get("name").replace(' ', '%20'),
             dv=DCC_INFO.get("version").replace(' ', '%20'),
             os=platform.system().lower().replace(' ', '%20'),
+            ov=osVersion(),
+            pv=platform.python_version().replace(' ', '%20'),
+            ul=ul,
         )
 
         response = urllib.request.urlopen(url)
@@ -1419,13 +1445,13 @@ def updateFound():
         if response.getcode() == 200:
             json_content = response.read().decode('utf-8')
             data = json.loads(json_content)
-            return data.get("updateFound", False)
+            return data
 
     except Exception as error:
         logger.debug("Exception occurred:\n%s", traceback.format_exc())
         pass
 
-    return False
+    return {}
 
 
 def testNormPath():

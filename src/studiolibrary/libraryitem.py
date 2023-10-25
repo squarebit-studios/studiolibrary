@@ -774,10 +774,14 @@ class LibraryItem(studiolibrary.widgets.Item):
             parent,
             "Rename item",
             "Rename the current item to:",
-            inputText=self.name()
+            inputText=self.name(),
+            buttons=[
+                ("Rename", QtWidgets.QDialogButtonBox.AcceptRole),
+                ("Cancel", QtWidgets.QDialogButtonBox.RejectRole)
+            ]
         )
 
-        if button == QtWidgets.QDialogButtonBox.Ok:
+        if button == "Rename":
             try:
                 self.rename(name)
 
@@ -840,8 +844,10 @@ class LibraryItem(studiolibrary.widgets.Item):
         text = 'Would you like to move the existing item "{}" to the trash?'
         text = text.format(os.path.basename(self.path()))
 
-        buttons = QtWidgets.QDialogButtonBox.Yes | \
-                  QtWidgets.QDialogButtonBox.Cancel
+        buttons = [
+            QtWidgets.QDialogButtonBox.Yes,
+            QtWidgets.QDialogButtonBox.Cancel
+        ]
 
         try:
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.ArrowCursor)
