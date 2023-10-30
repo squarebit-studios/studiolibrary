@@ -634,6 +634,8 @@ class Animation(mutils.Pose):
                 mutils.bakeConnected(objects, time=(start, end), sampleBy=sampleBy)
 
             for name in objects:
+                dstNodes = duplicateNode(name, "CURVE")
+                dstNode = dstNodes[0]
                 if maya.cmds.copyKey(
                     name, time=(start, end), includeUpperBound=False, option="keys"
                 ):
