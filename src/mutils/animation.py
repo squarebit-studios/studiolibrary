@@ -636,11 +636,10 @@ class Animation(mutils.Pose):
             for name in objects:
                 dstNodes = duplicateNode(name, "CURVE")
                 dstNode = dstNodes[0]
+                deleteObjects.append(dstNode)
                 if maya.cmds.copyKey(
                     name, time=(start, end), includeUpperBound=False, option="keys"
                 ):
-                    # dup_node = self._duplicate_node(name, "CURVE")
-                    (dup_node,) = maya.cmds.duplicate(name, name="CURVE", parentOnly=True)
                     if not FIX_SAVE_ANIM_REFERENCE_LOCKED_ERROR:
                         mutils.disconnectAll(dstNode)
 
@@ -654,7 +653,7 @@ class Animation(mutils.Pose):
                     for attr in attrs:
                         dstAttr = mutils.Attribute(dstNode, attr)
                         dstCurve = dstAttr.animCurve()
-                        
+
                         if dstCurve:
                             dstCurve = maya.cmds.rename(dstCurve, "CURVE")
                             deleteObjects.append(dstCurve)
