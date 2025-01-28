@@ -206,6 +206,9 @@ class LibraryItem(studiolibrary.widgets.Item):
         # if path:
         #     self.setPath(path)
 
+    def updatePermissionsEnabled(self):
+        return False
+
     def setReadOnly(self, readOnly):
         """
         Set the item to read only.
@@ -582,6 +585,10 @@ class LibraryItem(studiolibrary.widgets.Item):
         formatString = studiolibrary.config.get('metadataPath')
         path = studiolibrary.formatPath(formatString, self.path())
         studiolibrary.saveJson(path, metadata)
+
+        if self.updatePermissionsEnabled():
+            self.library().updatePermissions(path)
+
         self.setMetadata(metadata)
         self.syncItemData(emitDataChanged=False)
         self.dataChanged.emit(self)
@@ -668,8 +675,11 @@ class LibraryItem(studiolibrary.widgets.Item):
                 
         # move the temp file to the dst location.
         shutil.move(tmp, dst)
-
         self.setPath(dst)
+
+        if self.updatePermissionsEnabled():
+            self.library().updatePermissions(dst)
+
         self.syncItemData()
 
         if self.libraryWindow():

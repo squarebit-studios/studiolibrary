@@ -101,6 +101,9 @@ class FolderItem(studiolibrary.LibraryItem):
 
         return data
 
+    def updatePermissionsEnabled(self):
+        return True
+
     def updateMetadata(self, metadata):
         """
         Overriding this method to support updating the library widget directly.

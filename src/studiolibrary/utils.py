@@ -20,6 +20,7 @@ import shutil
 import locale
 import logging
 import getpass
+import random
 import tempfile
 import platform
 import threading
@@ -769,6 +770,13 @@ def read(path):
 
 
 def write(path, data):
+    if six.PY2:
+        write2(path, data)
+    else:
+        write3(path, data)
+
+
+def write2(path, data):
     """
     Write the given data to the given file on disc.
 
@@ -825,6 +833,42 @@ def write(path, data):
             os.rename(bak, path)
 
         raise
+
+
+def write3(path, data):
+    """
+    Writes the given data to a file atomically by first writing to a
+    temp file and then renaming it.
+
+    This approach avoids using the tempfile module to keep permissions
+    consistent with the write2 function.
+    """
+    path = normPath(path)
+    data = relPath(data, path)
+
+    dirname = os.path.dirname(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    tmp = None
+
+    try:
+
+        # Create a temporary file with a random name
+        characters = "abcdefghijklmnopqrstuvwxyz0123456789_"
+        name = ''.join(random.choice(characters) for _ in range(8))
+        tmp = os.path.join(dirname, name + ".delete")
+
+        with open(tmp, "w") as f:
+            f.write(data)
+            f.flush()
+
+        # Introduced in python 3.3
+        os.replace(tmp, path)
+
+    finally:
+        if tmp and os.path.exists(tmp):
+            os.remove(tmp)
 
 
 def update(data, other):
