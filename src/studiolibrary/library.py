@@ -306,6 +306,7 @@ class Library(QtCore.QObject):
         if self.path():
             studiolibrary.saveJson(self.databasePath(), data)
             self.setDirty(True)
+            self.updatePermissions(self.databasePath())
         else:
             logger.info('No path set for saving the data to disc.')
 
@@ -779,7 +780,34 @@ class Library(QtCore.QObject):
         """
         studiolibrary.renamePathInFile(self.databasePath(), src, dst)
         self.setDirty(True)
+        self.updatePermissions(self.databasePath())
         return dst
+
+    def updatePermissions(self, dst):
+        """
+        Update the permissions and ownership of the destination path to match the
+        root library path if running on a Linux system.
+
+        This helps with permission issues for shared libraries when using a default
+        umask of 022.
+
+        :type dst: str
+        :rtype: None
+        """
+        if not studiolibrary.isLinux():
+            return
+
+        stat = os.stat(self.path())
+
+        try:
+            os.chmod(dst, stat.st_mode)
+        except OSError as e:
+            logger.warning("Error changing permissions: %s", e)
+
+        try:
+            os.chown(dst, -1, stat.st_gid)
+        except OSError as e:
+            logger.warning("Error changing group ownership: %s", e)
 
     def removePath(self, path):
         """
